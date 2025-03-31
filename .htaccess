@@ -1,0 +1,16 @@
+# .htaccess file for API routing
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Rewrite rule for book endpoints
+RewriteRule ^api/books/?$ api/books.php [QSA,L]
+RewriteRule ^api/books/([0-9]+)/?$ api/books.php?id=$1 [QSA,L]
+
+# Rewrite rule for auth endpoints
+RewriteRule ^api/auth/login/?$ api/auth.php [QSA,L]
+RewriteRule ^api/auth/logout/?$ api/auth.php [QSA,L]
+RewriteRule ^api/auth/me/?$ api/auth.php [QSA,L]
+
+# Rewrite rule for registration
+RewriteRule ^api/register/?$ api/register.php [QSA,L]
