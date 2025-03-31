@@ -1,0 +1,9 @@
+# .htaccess file for API routing
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Rewrite rule for book endpoints
+RewriteRule ^api/books/?$ api/books.php [QSA,L]
+RewriteRule ^api/books/([0-9]+)/?$ api/books.php?id=$1 [QSA,L]
+
