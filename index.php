@@ -6,7 +6,10 @@
         'message' => 'Welcome to the Library Management System API',
         'endpoints' => [
             'books' => '/api/books',
-            'members' => '/api/members',
+            'register' => '/api/register',
+            'login' => '/api/auth/login',
+            'logout' => '/api/auth/logout',   
+            'user_info' => '/api/auth/me',
         ]
     ]);
 ?>
