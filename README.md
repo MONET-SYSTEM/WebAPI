@@ -1,6 +1,6 @@
-# **Web Services and API Development for System Integration**
+# **Library Management System API**
 ## **Overview**  
-This project provides a framework for integrating multiple systems through robust web services and APIs. The aim is to streamline communication between disparate systems, ensuring efficient data exchange and interoperability.
+This project provides a robust RESTful API designed specifically for managing library operations. The API facilitates efficient data exchange between library staff, digital catalog systems, and external applications. It supports core library functionalities such as cataloging, member management, and transaction processing, ensuring a seamless integration with existing systems
 ## **Features**  
 - **RESTful API Design:** Implements standard RESTful endpoints for CRUD operations.
 - **System Integration:** Seamlessly connects various enterprise systems.
