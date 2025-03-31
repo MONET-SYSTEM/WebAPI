@@ -1,4 +1,5 @@
 <?php
+
     $host = 'localhost';
     $dbname = 'library_managementdb';
     $username = 'root';
