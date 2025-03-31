@@ -1,9 +1,10 @@
 <?php
     require_once '../config.php';
+    require_once '../auth/auth.php';
 
     header('Content-Type: application/json');
     header('Access-Control-Allow-Origin: *');
-    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
     if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -12,13 +13,20 @@
 
     $method = $_SERVER['REQUEST_METHOD'];
 
-    $data = json_decode(file_get_contents('php://input'), true);
+    rateLimiter($conn);
 
     $requestUri = $_SERVER['REQUEST_URI'];
     $uriSegments = explode('/', trim(parse_url($requestUri, PHP_URL_PATH), '/'));
     $bookId = isset($uriSegments[count($uriSegments) - 1]) && is_numeric($uriSegments[count($uriSegments) - 1]) 
         ? (int) $uriSegments[count($uriSegments) - 1] 
         : null;
+
+    $data = json_decode(file_get_contents('php://input'), true);
+    if ($data === null && json_last_error() !== JSON_ERROR_NONE) {
+        http_response_code(400);
+        echo json_encode(['status' => 'error', 'message' => 'Invalid JSON payload']);
+        exit;
+    }
 
     switch ($method) {
         case 'GET':
@@ -29,7 +37,10 @@
             }
             break;
         case 'POST':
-            createBook($conn, $data);
+            $payload = authenticateRequest();
+            authorizeRole($payload, ['admin', 'librarian']);
+            
+            createBook($conn, $data, $payload);
             break;
         case 'PUT':
             if (!$bookId) {
@@ -37,7 +48,11 @@
                 echo json_encode(['status' => 'error', 'message' => 'Book ID is required']);
                 exit;
             }
-            updateBook($conn, $bookId, $data);
+            $payload = authenticateRequest();
+
+            authorizeRole($payload, ['admin', 'librarian']);
+            
+            updateBook($conn, $bookId, $data, $payload);
             break;
         case 'DELETE':
             if (!$bookId) {
@@ -45,7 +60,12 @@
                 echo json_encode(['status' => 'error', 'message' => 'Book ID is required']);
                 exit;
             }
-            deleteBook($conn, $bookId);
+
+            $payload = authenticateRequest();
+
+            authorizeRole($payload, ['admin']);
+            
+            deleteBook($conn, $bookId, $payload);
             break;
         default:
             http_response_code(405);
@@ -113,7 +133,7 @@
         }
     }
 
-    function createBook($conn, $data) {
+    function createBook($conn, $data, $payload) {
         if (!isset($data['title']) || !isset($data['author']) || !isset($data['isbn'])) {
             http_response_code(400);
             echo json_encode(['status' => 'error', 'message' => 'Required fields: title, author, isbn']);
@@ -121,6 +141,8 @@
         }
         
         try {
+            $conn->beginTransaction();
+            
             $stmt = $conn->prepare("INSERT INTO books (title, author, isbn, publication_date, category, copies_available) 
                                 VALUES (?, ?, ?, ?, ?, ?)");
             $stmt->execute([
@@ -134,19 +156,34 @@
             
             $bookId = $conn->lastInsertId();
 
+            $stmt = $conn->prepare("INSERT INTO user_activities (user_id, activity_type, details) 
+                                VALUES (?, 'create_book', ?)");
+            $stmt->execute([
+                $payload['user_id'],
+                json_encode([
+                    'book_id' => $bookId,
+                    'title' => $data['title'],
+                    'ip' => $_SERVER['REMOTE_ADDR']
+                ])
+            ]);
+            
+            $conn->commit();
+
             $stmt = $conn->prepare("SELECT * FROM books WHERE id = ?");
             $stmt->execute([$bookId]);
             $book = $stmt->fetch();
             
-            http_response_code(201);
+            http_response_code(201); 
             echo json_encode(['status' => 'success', 'message' => 'Book created successfully', 'data' => $book]);
+            
         } catch (PDOException $e) {
+            $conn->rollBack();
             http_response_code(500);
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }
     }
 
-    function updateBook($conn, $id, $data) {
+    function updateBook($conn, $id, $data, $payload) {
         try {
             $checkStmt = $conn->prepare("SELECT * FROM books WHERE id = ?");
             $checkStmt->execute([$id]);
@@ -160,35 +197,42 @@
 
             $fields = [];
             $params = [];
+            $changes = [];
             
-            if (isset($data['title'])) {
+            if (isset($data['title']) && $data['title'] !== $book['title']) {
                 $fields[] = "title = ?";
                 $params[] = $data['title'];
+                $changes['title'] = ['old' => $book['title'], 'new' => $data['title']];
             }
             
-            if (isset($data['author'])) {
+            if (isset($data['author']) && $data['author'] !== $book['author']) {
                 $fields[] = "author = ?";
                 $params[] = $data['author'];
+                $changes['author'] = ['old' => $book['author'], 'new' => $data['author']];
             }
             
-            if (isset($data['isbn'])) {
+            if (isset($data['isbn']) && $data['isbn'] !== $book['isbn']) {
                 $fields[] = "isbn = ?";
                 $params[] = $data['isbn'];
+                $changes['isbn'] = ['old' => $book['isbn'], 'new' => $data['isbn']];
             }
             
-            if (isset($data['publication_date'])) {
+            if (isset($data['publication_date']) && $data['publication_date'] !== $book['publication_date']) {
                 $fields[] = "publication_date = ?";
                 $params[] = $data['publication_date'];
+                $changes['publication_date'] = ['old' => $book['publication_date'], 'new' => $data['publication_date']];
             }
             
-            if (isset($data['category'])) {
+            if (isset($data['category']) && $data['category'] !== $book['category']) {
                 $fields[] = "category = ?";
                 $params[] = $data['category'];
+                $changes['category'] = ['old' => $book['category'], 'new' => $data['category']];
             }
             
-            if (isset($data['copies_available'])) {
+            if (isset($data['copies_available']) && $data['copies_available'] !== $book['copies_available']) {
                 $fields[] = "copies_available = ?";
                 $params[] = $data['copies_available'];
+                $changes['copies_available'] = ['old' => $book['copies_available'], 'new' => $data['copies_available']];
             }
 
             if (empty($fields)) {
@@ -199,9 +243,24 @@
 
             $params[] = $id;
             
+            $conn->beginTransaction();
+            
             $stmt = $conn->prepare("UPDATE books SET " . implode(", ", $fields) . " WHERE id = ?");
             $stmt->execute($params);
-  
+
+            $stmt = $conn->prepare("INSERT INTO user_activities (user_id, activity_type, details) 
+                                VALUES (?, 'update_book', ?)");
+            $stmt->execute([
+                $payload['user_id'],
+                json_encode([
+                    'book_id' => $id,
+                    'changes' => $changes,
+                    'ip' => $_SERVER['REMOTE_ADDR']
+                ])
+            ]);
+            
+            $conn->commit();
+
             $stmt = $conn->prepare("SELECT * FROM books WHERE id = ?");
             $stmt->execute([$id]);
             $updatedBook = $stmt->fetch();
@@ -211,13 +270,15 @@
                 'message' => 'Book updated successfully', 
                 'data' => $updatedBook
             ]);
+            
         } catch (PDOException $e) {
+            $conn->rollBack();
             http_response_code(500);
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }
     }
 
-    function deleteBook($conn, $id) {
+    function deleteBook($conn, $id, $payload) {
         try {
             $checkStmt = $conn->prepare("SELECT * FROM books WHERE id = ?");
             $checkStmt->execute([$id]);
@@ -229,15 +290,32 @@
                 return;
             }
             
+            $conn->beginTransaction();
+            
             $stmt = $conn->prepare("DELETE FROM books WHERE id = ?");
             $stmt->execute([$id]);
+            
+            $stmt = $conn->prepare("INSERT INTO user_activities (user_id, activity_type, details) 
+                                VALUES (?, 'delete_book', ?)");
+            $stmt->execute([
+                $payload['user_id'],
+                json_encode([
+                    'book_id' => $id,
+                    'book_details' => $book,
+                    'ip' => $_SERVER['REMOTE_ADDR']
+                ])
+            ]);
+            
+            $conn->commit();
             
             echo json_encode([
                 'status' => 'success', 
                 'message' => 'Book deleted successfully',
                 'data' => $book
             ]);
+            
         } catch (PDOException $e) {
+            $conn->rollBack();
             http_response_code(500);
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }
