@@ -16,4 +16,15 @@ This project provides a robust RESTful API designed specifically for managing li
   
 - **Detailed Documentation:** Provides comprehensive developer documentation to streamline integration and customization.
 
+## **Roadmap**
+Short-Term Goals
+- Fix known bugs.
+- Improve error handling.
+- Update documentation.
+
+Mid-Term Goals
+- Optimize performance.
+
+Long-Term Goals
+- Develop a user-friendly interface.
 
