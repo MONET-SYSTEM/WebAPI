@@ -17,5 +17,5 @@
     $stmt->execute([$payload['user_id'], json_encode(['ip' => $_SERVER['REMOTE_ADDR']])]);
 
     http_response_code(200);
-    echo json_encode(['status' => 'success', 'message' => 'Logout successful']);
+    echo json_encode(['status' => 'success', 'message' => 'Logout Successfully!']);
     ?>
