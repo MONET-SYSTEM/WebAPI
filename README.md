@@ -2,8 +2,9 @@
 ## **Overview**  
 This project provides a robust RESTful API designed specifically for managing library operations. The API facilitates efficient data exchange between library staff, digital catalog systems, and external applications. It supports core library functionalities such as cataloging, member management, and transaction processing, ensuring a seamless integration with existing systems
 ## **Features**  
-- **RESTful API Design:** Implements standard endpoints for CRUD operations on books, members, and borrowing transactions.
-  
+- **RESTful API Design:** Implements standard endpoints for CRUD operations on books, members, and borrowing transactions
+- Reports and analytics : generate realtime reports with expense breakdowns and insights to help you imake informed finnancial decisions.
+- Budget planning : set budget for specific categories and track your progress toward financial goals. 
 - **Comprehensive Library Management:** Supports functionalities like book cataloging, member registration, borrowing/returning processes, and inventory tracking.
   
 - **Advanced Search & Filtering:** Allows users to search and filter through books, authors, genres, and publication dates for quick and precise lookup.
