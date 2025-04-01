@@ -1,6 +1,6 @@
 <?php
     require_once '../config.php';
-    require_once '../auth/auth.php';
+    require_once '../auth/auth_service.php';
 
     header('Content-Type: application/json');
     header('Access-Control-Allow-Origin: *');

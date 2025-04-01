@@ -1,6 +1,6 @@
 <?php
     require_once '../config.php';
-    require_once '../auth/auth.php';
+    require_once '../auth/auth_service.php';
 
     header('Content-Type: application/json');
     header('Access-Control-Allow-Origin: *');
@@ -22,11 +22,7 @@
         : null;
 
     $data = json_decode(file_get_contents('php://input'), true);
-    if ($data === null && json_last_error() !== JSON_ERROR_NONE) {
-        http_response_code(400);
-        echo json_encode(['status' => 'error', 'message' => 'Invalid JSON payload']);
-        exit;
-    }
+  
 
     switch ($method) {
         case 'GET':
@@ -45,7 +41,7 @@
         case 'PUT':
             if (!$bookId) {
                 http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Book ID is required']);
+                echo json_encode(['status' => 'error', 'message' => 'Book ID is Required!']);
                 exit;
             }
             $payload = authenticateRequest();
@@ -57,7 +53,7 @@
         case 'DELETE':
             if (!$bookId) {
                 http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Book ID is required']);
+                echo json_encode(['status' => 'error', 'message' => 'Book ID is Required!']);
                 exit;
             }
 
@@ -69,7 +65,7 @@
             break;
         default:
             http_response_code(405);
-            echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
+            echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed!']);
             break;
     }
 
@@ -136,7 +132,7 @@
     function createBook($conn, $data, $payload) {
         if (!isset($data['title']) || !isset($data['author']) || !isset($data['isbn'])) {
             http_response_code(400);
-            echo json_encode(['status' => 'error', 'message' => 'Required fields: title, author, isbn']);
+            echo json_encode(['status' => 'error', 'message' => 'Required Fields: title, author, isbn']);
             return;
         }
         
@@ -174,7 +170,7 @@
             $book = $stmt->fetch();
             
             http_response_code(201); 
-            echo json_encode(['status' => 'success', 'message' => 'Book created successfully', 'data' => $book]);
+            echo json_encode(['status' => 'success', 'message' => 'Book Created Successfully!', 'data' => $book]);
             
         } catch (PDOException $e) {
             $conn->rollBack();
@@ -191,7 +187,7 @@
             
             if (!$book) {
                 http_response_code(404);
-                echo json_encode(['status' => 'error', 'message' => 'Book not found']);
+                echo json_encode(['status' => 'error', 'message' => 'Book Not Found!']);
                 return;
             }
 
@@ -267,7 +263,7 @@
             
             echo json_encode([
                 'status' => 'success', 
-                'message' => 'Book updated successfully', 
+                'message' => 'Book Updated Successfully!', 
                 'data' => $updatedBook
             ]);
             
@@ -286,7 +282,7 @@
             
             if (!$book) {
                 http_response_code(404);
-                echo json_encode(['status' => 'error', 'message' => 'Book not found']);
+                echo json_encode(['status' => 'error', 'message' => 'Book Not Found!']);
                 return;
             }
             
@@ -310,7 +306,7 @@
             
             echo json_encode([
                 'status' => 'success', 
-                'message' => 'Book deleted successfully',
+                'message' => 'Book Deleted Successfully!',
                 'data' => $book
             ]);
             

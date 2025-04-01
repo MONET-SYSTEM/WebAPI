@@ -1,5 +1,5 @@
 <?php
-    define('JWT_SECRET', 'gwapoko123');
+    define('JWT_SECRET', '123456');
 
     function generateJWT($payload) {
         $header = json_encode([
